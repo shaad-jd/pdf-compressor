@@ -19,6 +19,10 @@
   const fileInput = document.getElementById('file-input');
   const uploadError = document.getElementById('upload-error');
 
+ const fileTypeButtons = Array.from(document.querySelectorAll('.file-type-btn'));
+ const dropzoneTitle = document.getElementById('dropzone-title');
+ const dropzoneSubtitle = document.getElementById('dropzone-subtitle');
+ const fileInputHint = document.getElementById('file-input-hint'); 
   const fileNameEl = document.getElementById('file-name');
   const fileMetaEl = document.getElementById('file-meta');
   const removeFileBtn = document.getElementById('remove-file-btn');
@@ -59,6 +63,7 @@
   // ---- State ----
   let state = {
     file: null,
+    fileType: 'pdf',
     pageCount: null,
     mode: 'target', // 'target' | 'quality'
     qualityLevel: 'balanced',
@@ -90,8 +95,97 @@
     const f = fileInput.files && fileInput.files[0];
     if (f) handleFileSelected(f);
   });
+ fileTypeButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const type = button.dataset.type;
 
+    if (button.disabled) return;
+
+    state.fileType = type;
+
+    fileTypeButtons.forEach(btn => {
+      btn.classList.toggle('is-active', btn === button);
+    });
+
+    if (type === 'pdf') {
+      fileInput.accept = 'application/pdf,.pdf';
+      dropzoneTitle.textContent = 'Drop your PDF here';
+      dropzoneSubtitle.textContent = 'or click to browse';
+      fileInputHint.textContent = 'PDF up to 100 MB';
+    }
+
+    if (type === 'image') {
+      fileInput.accept = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+      dropzoneTitle.textContent = 'Drop your image here';
+      dropzoneSubtitle.textContent = 'or click to browse';
+      fileInputHint.textContent = 'JPG, PNG, or WEBP up to 100 MB';
+    }
+
+    fileInput.value = '';
+    hideAlert(uploadError);
+  });
+ });
   async function handleFileSelected(file) {
+  hideAlert(uploadError);
+
+  if (state.fileType === 'image') {
+    const imageCheck = await validateImageFile(file);
+
+    if (!imageCheck.valid) {
+      showAlert(uploadError, imageCheck.reason);
+      fileInput.value = '';
+      return;
+    }
+
+    state.file = file;
+    state.pageCount = null;
+    state.imageWidth = imageCheck.width;
+    state.imageHeight = imageCheck.height;
+
+    renderFileCard();
+    largeFileWarning.hidden = !imageCheck.isLarge;
+    hideAlert(configError);
+    updateCompressButtonState();
+    showScreen('configure');
+    return;
+  }
+
+  const basicCheck = await validatePdfFile(file);
+
+  if (!basicCheck.valid) {
+    showAlert(uploadError, basicCheck.reason);
+    fileInput.value = '';
+    return;
+  }
+
+  let arrayBuffer;
+
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch (_) {
+    showAlert(uploadError, 'This file could not be read.');
+    return;
+  }
+
+  const structural = await validatePdfStructure(arrayBuffer);
+
+  if (!structural.valid) {
+    showAlert(uploadError, structural.reason);
+    fileInput.value = '';
+    return;
+  }
+
+  state.file = file;
+  state.pageCount = structural.pageCount;
+  state.imageWidth = null;
+  state.imageHeight = null;
+
+  renderFileCard();
+  largeFileWarning.hidden = !basicCheck.isLarge;
+  hideAlert(configError);
+  updateCompressButtonState();
+  showScreen('configure');
+}
     hideAlert(uploadError);
     const basicCheck = await validatePdfFile(file);
     if (!basicCheck.valid) {
@@ -221,14 +315,47 @@
         setProgress(p.percent, stageLabel(p.phase), p.detail || '');
       };
 
-      let result;
-      if (state.mode === 'target') {
-        const targetBytes = getTargetBytes();
-        result = await compressToTarget(state.file, targetBytes, state.workerClient, onProgress);
-        result.targetBytes = targetBytes;
-      } else {
-        result = await compressWithQualityPreset(state.file, state.qualityLevel, state.workerClient, onProgress);
-      }
+ let result;
+
+ if (state.fileType === 'image') {
+  if (state.mode !== 'target') {
+    throw new Error('Image quality mode is not available yet.');
+  }
+
+  const targetBytes = getTargetBytes();
+
+  const imageResult = await compressImageToTarget(
+    state.file,
+    targetBytes,
+    (percent, detail) => {
+      setProgress(percent, 'Compressing image…', detail);
+    }
+  );
+
+  result = {
+    bytes: imageResult.blob,
+    size: imageResult.size,
+    method: 'image',
+    targetBytes,
+    targetReached: imageResult.size <= targetBytes
+  };
+ } else if (state.mode === 'target') {
+  const targetBytes = getTargetBytes();
+  result = await compressToTarget(
+    state.file,
+    targetBytes,
+    state.workerClient,
+    onProgress
+  );
+  result.targetBytes = targetBytes;
+ } else {
+  result = await compressWithQualityPreset(
+    state.file,
+    state.qualityLevel,
+    state.workerClient,
+    onProgress
+  );
+ }
 
       state.workerClient.terminate();
       state.workerClient = null;
@@ -272,23 +399,36 @@
 
     resultNote.hidden = true;
     resultNote.className = 'alert';
-    resultSubtitle.textContent = 'Your PDF is ready.';
+    resultSubtitle.textContent = state.fileType === 'image'
+   ? 'Your image is ready.'
+   : 'Your PDF is ready.';
 
-    if (result.method === 'none') {
-      resultSubtitle.textContent = result.note;
-    } else if (state.mode === 'target' && !result.targetReached) {
-      resultNote.hidden = false;
-      resultNote.classList.add('alert-warning');
-      resultNote.textContent = `Target size: ${formatBytes(result.targetBytes)}. Achieved size: ${formatBytes(compressedSize)}. We couldn't safely reduce this PDF further without significantly affecting quality.`;
-    } else if (result.hadTextContent && result.method === 'raster') {
-      resultNote.hidden = false;
-      resultNote.classList.add('alert-info');
-      resultNote.textContent = 'This PDF contained selectable text. To reach the target size, pages were converted into optimized images, so text is no longer selectable or searchable in the compressed file.';
-    }
-
+  if (result.method === 'none') {
+  resultSubtitle.textContent = result.note;
+} else if (state.mode === 'target' && !result.targetReached) {
+  resultNote.hidden = false;
+  resultNote.classList.add('alert-warning');
+  resultNote.textContent =
+    `Target size: ${formatBytes(result.targetBytes)}. Achieved size: ${formatBytes(compressedSize)}. We couldn't safely reduce this file further.`;
+} else if (
+  state.fileType === 'pdf' &&
+  result.hadTextContent &&
+  result.method === 'raster'
+) {
+  resultNote.hidden = false;
+  resultNote.classList.add('alert-info');
+  resultNote.textContent =
+    'This PDF contained selectable text. To reach the target size, pages were converted into optimized images, so text is no longer selectable or searchable in the compressed file.';
+ }
     // Prepare download
     if (state.downloadUrl) URL.revokeObjectURL(state.downloadUrl);
-    const blob = new Blob([result.bytes], { type: 'application/pdf' });
+    const outputType = state.fileType === 'image'
+  ? (result.type || state.file.type || 'image/jpeg')
+  : 'application/pdf';
+
+ const blob = result.bytes instanceof Blob
+  ? result.bytes
+  : new Blob([result.bytes], { type: outputType });
     state.downloadUrl = URL.createObjectURL(blob);
     state.compressedSize = compressedSize;
 
@@ -305,10 +445,25 @@
   }
 
   function buildOutputFilename(originalName, size) {
-    const base = originalName.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'document';
-    const sizeLabel = size < 1024 * 1024 ? `${Math.round(size / 1024)}KB` : `${(size / (1024 * 1024)).toFixed(1)}MB`;
-    return `${base}_${sizeLabel}.pdf`;
-  }
+  const base = originalName
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^a-zA-Z0-9-_ ]/g, '')
+    .trim() || 'file';
+
+  const extension = state.fileType === 'image'
+    ? (state.file.type === 'image/png'
+        ? 'png'
+        : state.file.type === 'image/webp'
+          ? 'webp'
+          : 'jpg')
+    : 'pdf';
+
+  const sizeLabel = size < 1024 * 1024
+    ? `${Math.round(size / 1024)}KB`
+    : `${(size / (1024 * 1024)).toFixed(1)}MB`;
+
+  return `${base}_${sizeLabel}.${extension}`;
+ }
 
   function showFatalError(message) {
     fatalErrorMessage.textContent = message;
