@@ -20,9 +20,8 @@
   const uploadError = document.getElementById('upload-error');
 
  const fileTypeButtons = Array.from(document.querySelectorAll('.file-type-card'));
- const dropzoneTitle = document.getElementById('dropzone-title');
- const dropzoneSubtitle = document.getElementById('dropzone-subtitle');
- const fileInputHint = document.getElementById('file-input-hint'); 
+ const dropzoneTitle = document.querySelector('.dropzone-title');
+ const dropzoneSubtitle = document.querySelector('.dropzone-sub'); 
   const fileNameEl = document.getElementById('file-name');
   const fileMetaEl = document.getElementById('file-meta');
   const removeFileBtn = document.getElementById('remove-file-btn');
@@ -111,7 +110,7 @@
       fileInput.accept = 'application/pdf,.pdf';
       dropzoneTitle.textContent = 'Drop your PDF here';
       dropzoneSubtitle.textContent = 'or click to browse';
-      fileInputHint.textContent = 'PDF up to 100 MB';
+      fileInputHint.textContent = 'JPG, PNG, or WEBP up to 100 MB';
     }
 
     if (type === 'image') {
