@@ -19,7 +19,7 @@
   const fileInput = document.getElementById('file-input');
   const uploadError = document.getElementById('upload-error');
 
- const fileTypeButtons = Array.from(document.querySelectorAll('.file-type-btn'));
+ const fileTypeButtons = Array.from(document.querySelectorAll('.file-type-card'));
  const dropzoneTitle = document.getElementById('dropzone-title');
  const dropzoneSubtitle = document.getElementById('dropzone-subtitle');
  const fileInputHint = document.getElementById('file-input-hint'); 
