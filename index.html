@@ -41,7 +41,45 @@
   <!-- ============ SCREEN: UPLOAD ============ -->
   <section id="screen-upload" class="screen" aria-labelledby="hero-heading">
     <h1 id="hero-heading" class="hero-title">What do you want to compress?</h1>
-    <p class="hero-sub">Set an exact target size — like 500&nbsp;KB or 2&nbsp;MB — and we'll get as close as safely possible. Nothing is ever uploaded.</p>
+    <p class="hero-sub">Compress your files to the size you need. Everything happens directly in your browser.</p>
+
+<div class="file-type-selector" aria-label="Choose file type">
+
+  <button type="button" class="file-type-card is-active" data-type="pdf">
+    <span class="file-type-icon">📄</span>
+    <span class="file-type-name">PDF</span>
+    <span class="file-type-status">Available now</span>
+  </button>
+
+  <button type="button" class="file-type-card" data-type="image" disabled>
+    <span class="file-type-icon">🖼️</span>
+    <span class="file-type-name">Images</span>
+    <span class="file-type-format">JPG · PNG · WEBP</span>
+    <span class="file-type-status">Coming soon</span>
+  </button>
+
+  <button type="button" class="file-type-card" data-type="video" disabled>
+    <span class="file-type-icon">🎬</span>
+    <span class="file-type-name">Video</span>
+    <span class="file-type-format">MP4 · MOV · WEBM</span>
+    <span class="file-type-status">Coming soon</span>
+  </button>
+
+  <button type="button" class="file-type-card" data-type="audio" disabled>
+    <span class="file-type-icon">🎵</span>
+    <span class="file-type-name">Audio</span>
+    <span class="file-type-format">MP3 · WAV · M4A</span>
+    <span class="file-type-status">Coming soon</span>
+  </button>
+
+  <button type="button" class="file-type-card" data-type="archive" disabled>
+    <span class="file-type-icon">🗜️</span>
+    <span class="file-type-name">Archive</span>
+    <span class="file-type-format">ZIP · files</span>
+    <span class="file-type-status">Coming soon</span>
+  </button>
+
+</div>
 
     <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Drop a PDF here or press Enter to browse files">
       <input type="file" id="file-input" accept="application/pdf,.pdf" hidden aria-hidden="true">

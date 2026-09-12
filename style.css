@@ -408,3 +408,64 @@ main.container { padding-top: 56px; padding-bottom: 64px; }
   .dropzone { padding: 40px 16px; }
   .header-inner { padding: 14px 16px; }
 }
+/* File type selector */
+.file-type-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 28px 0 24px;
+}
+
+.file-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 120px;
+  padding: 16px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.file-type-card:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.file-type-card.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+}
+
+.file-type-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.file-type-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.file-type-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.file-type-format,
+.file-type-status {
+  font-size: 11px;
+}
+
+.file-type-format {
+  color: var(--muted);
+}
+
+.file-type-status {
+  font-weight: 600;
+}
